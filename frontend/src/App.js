@@ -12,6 +12,7 @@ import UploadCephalogram from "./components/doctor/UploadCephalogram";
 import AutoLandmark from "./components/doctor/AutoLandmark";
 import Classification from "./components/doctor/Classification";
 import { AuthContext } from "./context/AuthContext";
+import CephalometricModel from "./components/CephalometricModel";
 import './index.css';
 
 export default function App(){
@@ -19,9 +20,11 @@ export default function App(){
 
   return (
     <BrowserRouter>
+    
       <Header />
       <Routes>
-        <Route path="/" element={<LoginPage />} />
+        <Route path="/" element={<CephalometricModel/>} />
+        <Route path="/login" element={<LoginPage />} />
         <Route path="/admin/dashboard" element={ currentUser?.role==="admin" ? <AdminDashboard /> : <Navigate to="/" /> } />
         <Route path="/admin/create-doctor" element={ currentUser?.role==="admin" ? <CreateDoctor /> : <Navigate to="/" /> } />
         <Route path="/admin/manage-doctors" element={ currentUser?.role==="admin" ? <ManageDoctors /> : <Navigate to="/" /> } />
