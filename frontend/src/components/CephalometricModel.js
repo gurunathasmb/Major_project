@@ -287,7 +287,7 @@ const CephalometricBackground = () => {
             <button onClick={() => navigate("/login")} className="px-8 py-3 bg-transparent border-2 border-white hover:bg-whitehover:text-gray-900 text-white rounded-lg font-semibold transition-colors">
               Get Started
             </button>
-            <button className="px-8 py-3 bg-transparent border-2 border-white hover:bg-white hover:text-gray-900 text-white rounded-lg font-semibold transition-colors">
+            <button onClick={()=>navigate("/lm")} className="px-8 py-3 bg-transparent border-2 border-white hover:bg-white hover:text-gray-900 text-white rounded-lg font-semibold transition-colors">
               Learn More
             </button>
           </div>
