@@ -1,71 +1,58 @@
-from pydantic import BaseModel, Field
-from typing import List, Optional, Any
+from pydantic import BaseModel
+from typing import Optional, List, Dict
 from datetime import datetime
-
-# =====================
-# 🔹 User Schemas
-# =====================
-class UserBase(BaseModel):
-    username: str
-    role: str
-
 
 class Token(BaseModel):
     access_token: str
     token_type: str
 
-class UserCreate(UserBase):
+class TokenData(BaseModel):
+    username: Optional[str] = None
+    role: Optional[str] = None
+
+class UserCreate(BaseModel):
+    username: str
     password: str
+    role: Optional[str] = "doctor"
 
-class UserOut(UserBase):
+class UserOut(BaseModel):
     id: int
-    created_at: datetime
-
+    username: str
+    role: str
     class Config:
-        from_attributes = True
+        orm_mode = True
 
-
-# =====================
-# 🔹 Patient Schemas
-# =====================
-class PatientBase(BaseModel):
+class PatientCreate(BaseModel):
     name: str
     dob: Optional[str] = None
     notes: Optional[str] = None
 
-class PatientCreate(PatientBase):
-    pass
-
-class PatientOut(PatientBase):
+class PatientOut(BaseModel):
     id: int
+    name: str
+    dob: Optional[str]
+    notes: Optional[str]
     created_at: datetime
-    owner_id: Optional[int] = None
-
     class Config:
-        from_attributes = True
-
-
-# =====================
-# 🔹 Prediction Schemas
-# =====================
-class Landmark(BaseModel):
+        orm_mode = True
+class LandmarkOut(BaseModel):
     name: str
     x: float
     y: float
 
-class PredictionBase(BaseModel):
-    patient_id: int
-    model_name: Optional[str] = "ceph_landmark_model"
-    result: Optional[Any] = None
-    image_path: Optional[str] = None
-    excel_path: Optional[str] = None
-
-class PredictionOut(PredictionBase):
+class PredictionOut(BaseModel):
     id: int
+    patient_id: int
+    model_name: str
+    model_version: Optional[str] = "v1.0"   # ✅ default so not required
     created_at: datetime
-    landmarks: Optional[List[Landmark]] = None
-    output_image: Optional[str] = None
-    excel_file: Optional[str] = None
+    status: str = "completed"               # ✅ default
+    processing_time: Optional[float] = None # ✅ default
+    num_landmarks: int                      # required but can be calculated
+    output_image: str
+    excel_file: str
+    landmarks: List[LandmarkOut]
 
     class Config:
         from_attributes = True
+

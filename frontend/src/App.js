@@ -43,9 +43,15 @@ export default function App(){
         <Route path="/doctor/dashboard" element={ currentUser?.role==="doctor" ? <DoctorDashboard /> : <Navigate to="/" /> } />
         <Route path="/doctor/create-patient" element={ currentUser?.role==="doctor" ? <CreatePatient /> : <Navigate to="/" /> } />
         <Route path="/doctor/upload-cephalogram" element={ currentUser?.role==="doctor" ? <UploadCephalogram /> : <Navigate to="/" /> } />
-        <Route path="/doctor/landmark/:cephalogramId" element={ currentUser?.role==="doctor" ? <AutoLandmark /> : <Navigate to="/" /> } />
-        <Route path="/doctor/classification/:cephalogramId" element={ currentUser?.role==="doctor" ? <Classification /> : <Navigate to="/" /> } />
+        <Route
+  path="/doctor/landmark/:id"
+  element={currentUser?.role === "doctor" ? <AutoLandmark /> : <Navigate to="/" />}
+/>
 
+<Route
+  path="/doctor/classification/:id"
+  element={currentUser?.role === "doctor" ? <Classification /> : <Navigate to="/" />}
+/>
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </BrowserRouter>

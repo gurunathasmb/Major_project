@@ -1,30 +1,68 @@
 // filepath: src/components/auth/LoginPage.js
 import React, { useState, useContext, useMemo } from "react";
 import { AuthContext } from "../../context/AuthContext";
-import { DoctorContext } from "../../context/DoctorContext";
 import { useNavigate } from "react-router-dom";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Float, Points, PointMaterial } from "@react-three/drei";
 
 export default function LoginPage() {
-  const { login, error } = useContext(AuthContext);
-  const { doctors } = useContext(DoctorContext);
-  const [role, setRole] = useState("admin");
+  const { login, error, loading, currentUser } = useContext(AuthContext);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState("doctor");
+  const [isRegister, setIsRegister] = useState(false);
+  const [registerError, setRegisterError] = useState(null);
+  const [registerLoading, setRegisterLoading] = useState(false);
   const nav = useNavigate();
 
-  const onSubmit = (e) => {
+  const API_URL = "http://localhost:8000"; // ⚙️ FastAPI backend URL
+
+  // 🟩 LOGIN handler
+  const handleLogin = async (e) => {
     e.preventDefault();
-    const ok = login(email, password);
+    const ok = await login(email, password);
     if (ok) {
-      const isAdmin = email === "admin@cephaloai.com";
-      if (isAdmin) nav("/admin/dashboard");
-      else nav("/doctor/dashboard");
+      const userRole = currentUser?.role || "doctor";
+      if (userRole === "admin") nav("/admin/dashboard");
+      else if (userRole === "doctor") nav("/doctor/dashboard");
+      else nav("/patient/dashboard");
     }
   };
 
-  // Generate 3D particles
+  // 🟦 REGISTER handler
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    setRegisterError(null);
+    setRegisterLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: email, password, role }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Registration failed");
+      }
+
+      // auto-login after register
+      const ok = await login(email, password);
+      if (ok) {
+        const userRole = currentUser?.role || role;
+        if (userRole === "admin") nav("/admin/dashboard");
+        else if (userRole === "doctor") nav("/doctor/dashboard");
+        else nav("/patient/dashboard");
+      }
+    } catch (err) {
+      console.error("Registration error:", err);
+      setRegisterError(err.message);
+    } finally {
+      setRegisterLoading(false);
+    }
+  };
+
+  // 🌀 Background particle generation
   const particles = useMemo(() => {
     const positions = new Float32Array(3000);
     for (let i = 0; i < positions.length; i++) {
@@ -55,7 +93,7 @@ export default function LoginPage() {
               transparent
               color="#00ffff"
               size={0.03}
-              sizeAttenuation={true}
+              sizeAttenuation
               depthWrite={false}
             />
           </Points>
@@ -63,32 +101,24 @@ export default function LoginPage() {
         <OrbitControls enableZoom={false} enablePan={false} autoRotate />
       </Canvas>
 
-      {/* Foreground Login Box */}
+      {/* Foreground Login/Register Box */}
       <div className="relative z-10 max-w-md w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-lg p-8 text-white">
         <h2 className="text-3xl font-semibold mb-4 text-center text-white">
-          Ceph AI Login
+          {isRegister ? "Register New Account" : "Ceph AI Login"}
         </h2>
 
-        <form onSubmit={onSubmit} className="space-y-3">
-          <div>
-            <label className="text-sm text-gray-200">Role</label>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              className="w-full bg-transparent border border-green-500 p-2 rounded text-white"
-            >
-              <option value="admin">Admin</option>
-              <option value="doctor">Doctor</option>
-            </select>
-          </div>
-
+        <form
+          onSubmit={isRegister ? handleRegister : handleLogin}
+          className="space-y-3"
+        >
           <div>
             <label className="text-sm text-gray-200">Email</label>
             <input
               required
+              type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-transparent border border-gray-500 p-2 rounded text-white"
+              className="w-full bg-transparent border border-gray-500 p-2 rounded text-white focus:border-cyan-400"
             />
           </div>
 
@@ -99,20 +129,69 @@ export default function LoginPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-transparent border border-gray-500 p-2 rounded text-white"
+              className="w-full bg-transparent border border-gray-500 p-2 rounded text-white focus:border-cyan-400"
             />
           </div>
 
-          {error && <div className="text-sm text-red-400">{error}</div>}
+          {isRegister && (
+            <div>
+              <label className="text-sm text-gray-200">Role</label>
+              <select
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                className="w-full bg-transparent border border-gray-500 p-2 rounded text-white focus:border-cyan-400"
+              >
+                <option value="doctor">Doctor</option>
+                <option value="admin">Admin</option>
+                <option value="patient">Patient</option>
+              </select>
+            </div>
+          )}
 
-          <button className="w-full bg-cyan-500 hover:bg-cyan-400 text-white-900 py-2 rounded font-semibold transition">
-            Sign in
+          {(error || registerError) && (
+            <div className="text-sm text-red-400">{error || registerError}</div>
+          )}
+
+          <button
+            disabled={loading || registerLoading}
+            className={`w-full py-2 rounded font-semibold transition ${
+              loading || registerLoading
+                ? "bg-gray-500 cursor-not-allowed"
+                : "bg-cyan-500 hover:bg-cyan-400"
+            }`}
+          >
+            {isRegister
+              ? registerLoading
+                ? "Registering..."
+                : "Register"
+              : loading
+              ? "Signing in..."
+              : "Sign in"}
           </button>
         </form>
 
         <div className="text-xs text-gray-300 mt-3 text-center">
-          Admin: admin@cephaloai.com / admin123 <br />
-          Doctor: doctor.smith@hospital.com / doctor123
+          {isRegister ? (
+            <>
+              Already have an account?{" "}
+              <button
+                onClick={() => setIsRegister(false)}
+                className="text-cyan-400 hover:text-cyan-300 underline"
+              >
+                Sign in
+              </button>
+            </>
+          ) : (
+            <>
+              Don’t have an account?{" "}
+              <button
+                onClick={() => setIsRegister(true)}
+                className="text-cyan-400 hover:text-cyan-300 underline"
+              >
+                Register
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

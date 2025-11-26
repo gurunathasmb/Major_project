@@ -73,41 +73,28 @@ def list_patients(
 
     return db.query(models.Patient).filter(models.Patient.owner_id == user.id).all()
 
-
-# 🆕 📌 Get Cephalogram + Latest Prediction
-@app.get("/cephalogram/{ceph_id}")
+# 🆕 📌 Get a Prediction + Image + Landmarks
+@app.get("/cephalogram/{pred_id}")
 def get_cephalogram(
-    ceph_id: int,
+    pred_id: int,
     db: Session = Depends(get_db),
     token: dict = Depends(utils.get_current_user)
 ):
-    username = token.get("sub")
-    user = db.query(models.User).filter(models.User.username == username).first()
-    if not user:
-        raise HTTPException(status_code=401, detail="User not found")
-
-    patient = db.query(models.Patient).filter(models.Patient.id == ceph_id).first()
-    if not patient:
+    pred = db.query(models.Prediction).filter(models.Prediction.id == pred_id).first()
+    if not pred:
         raise HTTPException(status_code=404, detail="Cephalogram not found")
-
-    pred = (
-        db.query(models.Prediction)
-        .filter(models.Prediction.patient_id == ceph_id)
-        .order_by(models.Prediction.created_at.desc())
-        .first()
-    )
 
     def fix(path):
         return path.replace("\\", "/") if path else None
 
     return {
-        "id": patient.id,
-        "fileName": patient.name,
-        "dob": patient.dob,
-        "notes": patient.notes,
-        "landmarks": pred.result if pred else None,
-        "image_url": f"http://localhost:8000/{fix(pred.image_path)}" if pred else None,
-        "excel_file": f"http://localhost:8000/{fix(pred.excel_path)}" if pred else None,
+        "id": pred.id,
+        "patient_id": pred.patient_id,
+        "model_name": pred.model_name,
+        "landmarks": pred.result,
+        "image_url": f"http://localhost:8000/{fix(pred.image_path)}",
+        "excel_file": f"http://localhost:8000/{fix(pred.excel_path)}",
+        "created_at": pred.created_at
     }
 
 
@@ -119,6 +106,9 @@ async def predict(
     db: Session = Depends(get_db),
     token: dict = Depends(utils.get_current_user)
 ):
+    import time
+    start_time = time.time()
+
     username = token.get("sub")
     user = db.query(models.User).filter(models.User.username == username).first()
     if not user:
@@ -140,6 +130,10 @@ async def predict(
     # 🧠 Run ML inference
     result = ml_inference.process_and_predict(contents, patient_id)
 
+    processing_time = round(time.time() - start_time, 3)
+    num_landmarks = len(result["landmarks"])
+
+    # Save prediction in DB
     pred = models.Prediction(
         patient_id=patient.id,
         model_name="ceph_landmark_model",
@@ -152,18 +146,20 @@ async def predict(
     db.commit()
     db.refresh(pred)
 
+    # 🟢 FINAL RESPONSE that matches PredictionOut EXACTLY
     return {
         "id": pred.id,
         "patient_id": patient.id,
         "model_name": pred.model_name,
+        "model_version": "v1.0",
         "created_at": pred.created_at,
+        "status": "completed",
+        "processing_time": processing_time,
+        "num_landmarks": num_landmarks,
         "landmarks": result["landmarks"],
         "output_image": result["output_image"],
-        "excel_file": result["excel_file"],
-        "image_path": pred.image_path,
-        "result": pred.result
+        "excel_file": result["excel_file"]
     }
-
 
 # 🔍 List Predictions Per Patient
 @app.get("/patients/{patient_id}/predictions", response_model=List[schemas.PredictionOut])
