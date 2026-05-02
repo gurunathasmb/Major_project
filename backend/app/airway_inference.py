@@ -1,14 +1,6 @@
 import os
 import io
 import zipfile
-import nrrd
-import numpy as np
-import tensorflow as tf
-from tensorflow.keras import layers, models
-import tensorflow.keras.backend as K
-import pydicom
-import skimage.measure
-import trimesh
 import tempfile
 from huggingface_hub import hf_hub_download
 from app.storage import upload_bytes
@@ -23,6 +15,7 @@ TARGET_LABEL = 5
 # METRICS & LOSS
 # ===============================
 def dice_coefficient(y_true, y_pred):
+    import tensorflow.keras.backend as K
     y_true_f = K.flatten(y_true)
     y_pred_f = K.flatten(y_pred)
     intersection = K.sum(y_true_f * y_pred_f)
@@ -32,23 +25,26 @@ def dice_loss(y_true, y_pred):
     return 1 - dice_coefficient(y_true, y_pred)
 
 def bce_dice_loss(y_true, y_pred):
+    import tensorflow as tf
     bce = tf.keras.losses.binary_crossentropy(y_true, y_pred)
     return bce + dice_loss(y_true, y_pred)
 
 # ===============================
 # MODEL ARCHITECTURE
 # ===============================
-def conv_block(x, f):
-    x = layers.Conv3D(f, 3, padding="same")(x)
-    x = layers.BatchNormalization()(x)
-    x = layers.ReLU()(x)
-    x = layers.Conv3D(f, 3, padding="same")(x)
-    x = layers.BatchNormalization()(x)
-    x = layers.ReLU()(x)
-    return x
-
 def build_unet():
+    from tensorflow.keras import layers, models
     inputs = layers.Input((128, 128, 128, 1))
+    
+    def conv_block(x, f):
+        x = layers.Conv3D(f, 3, padding="same")(x)
+        x = layers.BatchNormalization()(x)
+        x = layers.ReLU()(x)
+        x = layers.Conv3D(f, 3, padding="same")(x)
+        x = layers.BatchNormalization()(x)
+        x = layers.ReLU()(x)
+        return x
+
     c1 = conv_block(inputs, 16)
     p1 = layers.MaxPool3D()(c1)
     c2 = conv_block(p1, 32)
@@ -96,12 +92,18 @@ def get_model():
 def clear_airway_model():
     global _MODEL
     _MODEL = None
-    tf.keras.backend.clear_session()
+    try:
+        import tensorflow as tf
+        tf.keras.backend.clear_session()
+    except:
+        pass
 
 # ===============================
 # DATA PROCESSING
 # ===============================
 def process_dicom_zip(zip_bytes):
+    import pydicom
+    import numpy as np
     with zipfile.ZipFile(io.BytesIO(zip_bytes)) as z:
         dicom_files = [f for f in z.namelist() if f.lower().endswith('.dcm') or not f.startswith('__MACOSX')]
         slices = []
@@ -147,6 +149,7 @@ def process_dicom_zip(zip_bytes):
 
 def resize_volume(img):
     import scipy.ndimage
+    import numpy as np
     img = (img - np.min(img)) / (np.max(img) - np.min(img) + 1e-8)
     
     # We must resize the entire volume to (128, 128, 128)
@@ -163,6 +166,8 @@ def resize_volume(img):
 # MESH EXTRACTION
 # ===============================
 def generate_mesh(volume, threshold, output_path, spacing=(1.0, 1.0, 1.0), smooth=True):
+    import skimage.measure
+    import trimesh
     try:
         verts, faces, normals, values = skimage.measure.marching_cubes(volume, level=threshold, spacing=spacing)
         mesh = trimesh.Trimesh(vertices=verts, faces=faces, vertex_normals=normals)
@@ -181,6 +186,7 @@ def generate_mesh(volume, threshold, output_path, spacing=(1.0, 1.0, 1.0), smoot
 # METRICS CALCULATION
 # ===============================
 def airway_volume(mask, header):
+    import numpy as np
     if "space directions" in header and header["space directions"] is not None:
         try:
             dirs = header["space directions"]
@@ -202,6 +208,7 @@ def airway_volume(mask, header):
     return volume_mm3, volume_cm3, spacing
 
 def calculate_advanced_metrics(mask, header):
+    import numpy as np
     vol_mm3, vol_cm3, spacing = airway_volume(mask, header)
     pixel_area = spacing[0] * spacing[1]
     
@@ -245,6 +252,7 @@ def calculate_advanced_metrics(mask, header):
 # MAIN PIPELINE
 # ===============================
 def process_airway_scan(file_bytes, is_zip=False, patient_id=0):
+    import nrrd
     print("Starting airway inference...")
     
     if is_zip:
@@ -261,6 +269,7 @@ def process_airway_scan(file_bytes, is_zip=False, patient_id=0):
     img_res = resize_volume(volume)
     
     # 2. Predict
+    import numpy as np
     model = get_model()
     # Model expects (batch, 128, 128, 128, 1)
     input_tensor = np.expand_dims(np.expand_dims(img_res, axis=0), axis=-1)
@@ -273,6 +282,7 @@ def process_airway_scan(file_bytes, is_zip=False, patient_id=0):
     # Resize mask back to original shape for perfect alignment in visualization
     orig_shape = volume.shape
     import scipy.ndimage
+    import nrrd
     zoom_factors = (
         orig_shape[0] / 128.0,
         orig_shape[1] / 128.0,

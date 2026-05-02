@@ -1,10 +1,6 @@
-import tensorflow as tf
-import numpy as np
-from PIL import Image, ImageDraw, ImageFont
-import io
+# Heavy imports moved inside functions for memory efficiency
 import os
 import pandas as pd
-from shapely.geometry import Polygon
 from huggingface_hub import hf_hub_download
 from dotenv import load_dotenv
 
@@ -60,6 +56,7 @@ _hm19_model = None
 def load_seg_model():
     global _seg_model
     if _seg_model is None:
+        import tensorflow as tf
         print("DEBUG: Loading Segmentation Model...")
         _seg_model = tf.keras.models.load_model(SEG_MODEL_PATH, compile=False)
     return _seg_model
@@ -67,6 +64,7 @@ def load_seg_model():
 def load_reg_model():
     global _reg_model
     if _reg_model is None:
+        import tensorflow as tf
         print("DEBUG: Loading Regressor Model...")
         _reg_model = tf.keras.models.load_model(REG_MODEL_PATH, compile=False)
     return _reg_model
@@ -74,6 +72,7 @@ def load_reg_model():
 def load_hm11_model():
     global _hm11_model
     if _hm11_model is None:
+        import tensorflow as tf
         print("DEBUG: Loading Heatmap Model...")
         _hm11_model = tf.keras.models.load_model(HM11_PATH, compile=False)
     return _hm11_model
@@ -81,6 +80,7 @@ def load_hm11_model():
 def load_hm19_model():
     global _hm19_model
     if _hm19_model is None:
+        import tensorflow as tf
         print("DEBUG: Loading 19-Landmark Heatmap Model (Cloud Optimized)...")
         _hm19_model = tf.keras.models.load_model(HM19_PATH, compile=False)
     return _hm19_model
@@ -92,13 +92,20 @@ def clear_all_models():
     _reg_model = None
     _hm11_model = None
     _hm19_model = None
-    tf.keras.backend.clear_session()
+    try:
+        import tensorflow as tf
+        tf.keras.backend.clear_session()
+    except:
+        pass
 
 
 # ==================================================
 # PREPROCESS FOR 19 LANDMARK MODEL (256)
 # ==================================================
 def preprocess_19(image_bytes):
+    from PIL import Image
+    import io
+    import numpy as np
     img = Image.open(io.BytesIO(image_bytes)).convert("L")
     img = img.resize((IMG_SIZE_19, IMG_SIZE_19))
     arr = np.array(img, dtype=np.float32) / 255.0
@@ -109,6 +116,9 @@ def preprocess_19(image_bytes):
 # PREPROCESS FOR 11 HEATMAP MODEL (320)
 # ==================================================
 def preprocess_11(image_bytes):
+    from PIL import Image
+    import io
+    import numpy as np
     img = Image.open(io.BytesIO(image_bytes)).convert("L")
     img = img.resize((IMG_SIZE_11, IMG_SIZE_11))
     arr = np.array(img, dtype=np.float32) / 255.0
@@ -128,6 +138,7 @@ CORE_11 = [
 # HEATMAP TO COORDS (320)
 # ==================================================
 def heatmap_to_coords(hm):
+    import numpy as np
     coords = []
     for i in range(hm.shape[-1]):
         y, x = np.unravel_index(np.argmax(hm[..., i]), (IMG_SIZE_11, IMG_SIZE_11))
@@ -143,6 +154,7 @@ def predict_landmarks_19(image_bytes):
     # GLOBAL MODE (Memory Efficient 19-LM Heatmap)
     # ==================================================
     if os.getenv("STORAGE_MODE") == "s3":
+        import numpy as np
         hm19 = load_hm19_model()
         x = preprocess_11(image_bytes) # Uses 320 size
         hm_pred = hm19.predict(x, verbose=0)[0]
@@ -206,6 +218,7 @@ def refine_core_11(image_bytes, landmarks):
 # ==================================================
 
 def angle(v1, v2):
+    import numpy as np
     """
     Returns acute angle between two lines (0–90°)
     Direction ignored (clinical angle)
@@ -222,6 +235,7 @@ def angle(v1, v2):
 
     return theta
 def full_angle(v1, v2):
+    import numpy as np
     denom = (np.linalg.norm(v1) * np.linalg.norm(v2)) + 1e-9
     cos_theta = np.dot(v1, v2) / denom
     cos_theta = np.clip(cos_theta, -1.0, 1.0)
@@ -231,6 +245,9 @@ def full_angle(v1, v2):
     return theta   # NO conversion
 
 def compute_angles(landmarks, image_bytes):
+    from PIL import Image
+    import io
+    import numpy as np
     """
     Computes cephalometric angles in pixel space to account for image aspect ratio.
     Aligns with frontend live telemetry.
@@ -280,6 +297,9 @@ def compute_angles(landmarks, image_bytes):
 # AIRWAY
 # ==================================================
 def compute_airway(landmarks, image_bytes):
+    from PIL import Image
+    import io
+    import numpy as np
 
     img = Image.open(io.BytesIO(image_bytes))
     w, h = img.size
@@ -401,6 +421,8 @@ def clinical_classify(angles):
 # DRAW + SAVE IMAGE
 # ==================================================
 def save_labeled_image(image_bytes, landmarks, path, angles=None):
+    from PIL import Image, ImageDraw, ImageFont
+    import io
 
     img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     w, h = img.size
