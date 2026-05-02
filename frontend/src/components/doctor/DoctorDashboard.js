@@ -238,17 +238,17 @@ export default function DoctorDashboard({ searchTerm, setSearchTerm }) {
                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest group-hover:text-indigo-600">Initiate automated analysis</p>
                   </div>
                </button>
-               <div className="p-6 bg-white border border-slate-100 rounded-2xl shadow-sm flex items-center gap-6 group">
-                  <div className="p-5 bg-emerald-50 text-emerald-600 rounded-xl shadow-inner transition-transform group-hover:rotate-12">
+               <button onClick={() => navigate("/doctor/upload-airway")} className="p-6 bg-white border border-slate-100 rounded-2xl shadow-sm flex items-center gap-6 group hover:translate-y-[-2px] transition-all cursor-pointer">
+                  <div className="p-5 bg-emerald-50 text-emerald-600 rounded-xl shadow-inner transition-transform group-hover:rotate-12 group-hover:bg-emerald-600 group-hover:text-white">
                      <Activity size={28} />
                   </div>
                   <div className="text-left">
                      <h3 className="text-lg font-bold text-slate-900 leading-tight mb-1">Clinic Sync</h3>
                      <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-widest flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Connection Online
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> 3D Airway Analysis
                      </p>
                   </div>
-               </div>
+               </button>
             </div>
 
             <div className="space-y-4 pt-2">

@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@niivue/niivue": "^0.68.2",
     "@react-three/drei": "^10.7.6",
     "@react-three/fiber": "^9.4.0",
     "@tailwindcss/postcss": "^4.1.16",

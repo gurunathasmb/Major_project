@@ -27,6 +27,8 @@ import DoctorDashboard from "./components/doctor/DoctorDashboard";
 import DoctorLayout from "./components/doctor/DoctorLayout";
 import CreatePatient from "./components/doctor/CreatePatient";
 import UploadCephalogram from "./components/doctor/UploadCephalogram";
+import UploadAirway from "./components/doctor/UploadAirway";
+import AirwayAnalysisView from "./components/doctor/AirwayAnalysisView";
 import AutoLandmark from "./components/doctor/AutoLandmark";
 import ManualAdjust from "./components/doctor/ManualAdjust";
 import ClassificationView from "./components/doctor/ClassificationView";
@@ -141,6 +143,12 @@ export default function App() {
         } />
         <Route path="/doctor/classification/:id" element={
           <ProtectedRoute role="doctor"><DoctorLayout><ClassificationView /></DoctorLayout></ProtectedRoute>
+        } />
+        <Route path="/doctor/upload-airway" element={
+          <ProtectedRoute role="doctor"><DoctorLayout><UploadAirway /></DoctorLayout></ProtectedRoute>
+        } />
+        <Route path="/doctor/airway-analysis/:id" element={
+          <ProtectedRoute role="doctor"><DoctorLayout><AirwayAnalysisView /></DoctorLayout></ProtectedRoute>
         } />
         <Route path="/doctor/chat" element={
           <ProtectedRoute role="doctor"><DoctorLayout><Chat /></DoctorLayout></ProtectedRoute>
