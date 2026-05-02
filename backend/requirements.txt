@@ -138,4 +138,5 @@ opt_einsum
 optree
 packaging
 pycparser
+passlib
 
