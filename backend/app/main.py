@@ -293,7 +293,10 @@ async def finalize_prediction(
         raise HTTPException(500, "ML result is None")
 
     try:
+        print(f"DEBUG: Processing final results for patient {patient_id}...")
+        
         with open(result["output_image"], "rb") as f:
+            img_start = time.time()
             image_url = upload_bytes(
                 f.read(),
                 folder="images",
@@ -301,8 +304,10 @@ async def finalize_prediction(
                 content_type="image/jpeg",
                 original_name=file.filename
             )
+            print(f"DEBUG: Image processing/upload total: {round(time.time() - img_start, 2)}s")
 
         with open(result["excel_file"], "rb") as f:
+            exc_start = time.time()
             excel_url = upload_bytes(
                 f.read(),
                 folder="excels",
@@ -310,7 +315,9 @@ async def finalize_prediction(
                 content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 original_name=file.filename
             )
+            print(f"DEBUG: Excel upload total: {round(time.time() - exc_start, 2)}s")
 
+        pdf_start = time.time()
         pdf_buffer = io.BytesIO()
 
         generate_ceph_report(
@@ -327,7 +334,9 @@ async def finalize_prediction(
         )
 
         pdf_buffer.seek(0)
+        print(f"DEBUG: PDF generation took {round(time.time() - pdf_start, 2)}s")
 
+        pdf_up_start = time.time()
         pdf_url = upload_bytes(
             pdf_buffer.getvalue(),
             folder="reports",
@@ -335,6 +344,7 @@ async def finalize_prediction(
             content_type="application/pdf",
             original_name=file.filename
         )
+        print(f"DEBUG: PDF upload took {round(time.time() - pdf_up_start, 2)}s")
 
         append_to_master_excel(file.filename, result)
 
@@ -359,11 +369,16 @@ async def finalize_prediction(
         if hasattr(models.Prediction, "doctor_id"):
             prediction_data["doctor_id"] = doctor_id
 
+        db_start = time.time()
         pred = models.Prediction(**prediction_data)
 
         db.add(pred)
         db.commit()
         db.refresh(pred)
+        print(f"DEBUG: Database commit took {round(time.time() - db_start, 2)}s")
+
+        total_proc = round(time.time() - start, 3)
+        print(f"DEBUG: TOTAL process time: {total_proc}s")
 
         return {
             "id": pred.id,
@@ -372,7 +387,7 @@ async def finalize_prediction(
             "mode_used": pred.mode_used,
             "created_at": pred.created_at,
             "status": "completed",
-            "processing_time": round(time.time() - start, 3),
+            "processing_time": total_proc,
             "num_landmarks": len(result["landmarks"]),
             "landmarks": result["landmarks"],
             "angles": result["angles"],
