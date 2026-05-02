@@ -49,15 +49,34 @@ _hm11_model = None
 # ==================================================
 # LOAD MODELS
 # ==================================================
-def load_models():
-    global _seg_model, _reg_model, _hm11_model
+def load_seg_model():
+    global _seg_model
     if _seg_model is None:
+        print("DEBUG: Loading Segmentation Model...")
         _seg_model = tf.keras.models.load_model(SEG_MODEL_PATH, compile=False)
+    return _seg_model
+
+def load_reg_model():
+    global _reg_model
     if _reg_model is None:
+        print("DEBUG: Loading Regressor Model...")
         _reg_model = tf.keras.models.load_model(REG_MODEL_PATH, compile=False)
+    return _reg_model
+
+def load_hm11_model():
+    global _hm11_model
     if _hm11_model is None:
+        print("DEBUG: Loading Heatmap Model...")
         _hm11_model = tf.keras.models.load_model(HM11_PATH, compile=False)
-    return _seg_model, _reg_model, _hm11_model
+    return _hm11_model
+
+def clear_all_models():
+    """Clear models from memory if needed (useful for low-memory environments)"""
+    global _seg_model, _reg_model, _hm11_model
+    _seg_model = None
+    _reg_model = None
+    _hm11_model = None
+    tf.keras.backend.clear_session()
 
 
 # ==================================================
@@ -104,7 +123,8 @@ def heatmap_to_coords(hm):
 # PREDICT 19 LANDMARKS (256)
 # ==================================================
 def predict_landmarks_19(image_bytes):
-    seg_model, reg_model, _ = load_models()
+    seg_model = load_seg_model()
+    reg_model = load_reg_model()
     x = preprocess_19(image_bytes)
 
     mask = seg_model.predict(x, verbose=0)
@@ -126,7 +146,7 @@ def predict_landmarks_19(image_bytes):
 # REFINE CORE 11 (320)
 # ==================================================
 def refine_core_11(image_bytes, landmarks):
-    _, _, hm11 = load_models()
+    hm11 = load_hm11_model()
     x = preprocess_11(image_bytes)
 
     hm_pred = hm11.predict(x, verbose=0)[0]
@@ -427,8 +447,7 @@ def save_labeled_image(image_bytes, landmarks, path, angles=None):
 # CLINICAL PIPELINE
 # ==================================================
 def predict_clinical_landmarks_only(image_bytes, ceph_id):
-
-    _, _, hm11 = load_models()
+    hm11 = load_hm11_model()
     x = preprocess_11(image_bytes)
 
     hm_pred = hm11.predict(x, verbose=0)[0]

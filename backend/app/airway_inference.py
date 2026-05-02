@@ -79,6 +79,7 @@ def get_model():
     global _MODEL
     if _MODEL is None:
         try:
+            print("DEBUG: Loading 3D Airway Model...")
             model_path = hf_hub_download(
                 repo_id="gurunathasmb/cepha-models",
                 filename="airway_segmentation_model.h5",
@@ -91,6 +92,11 @@ def get_model():
             print(f"ERROR downloading airway model: {e}. Using empty weights.")
             _MODEL = build_unet()
     return _MODEL
+
+def clear_airway_model():
+    global _MODEL
+    _MODEL = None
+    tf.keras.backend.clear_session()
 
 # ===============================
 # DATA PROCESSING
