@@ -31,7 +31,7 @@ app = FastAPI(title="CephAI Backend")
 # ==================================================
 # STATIC FILE SERVING
 # ==================================================
-if STORAGE_MODE == "local":
+if STORAGE_MODE in ["local", "auto"]:
     os.makedirs("local_storage", exist_ok=True)
     app.mount(
         "/local_storage",
@@ -228,17 +228,21 @@ async def airway_predict(
         excel_url = ""
         
         pdf_buffer = io.BytesIO()
-        os.makedirs("local_storage/reports", exist_ok=True)
-        report_path = f"local_storage/reports/airway_{patient_id}_{int(time.time())}.pdf"
-        
         airway_report_generator.generate_airway_report(
             patient_id=patient_id,
             metrics=result["metrics"],
-            image_path=None,  # No screenshot yet
-            save_path=report_path
+            image_path=None,
+            save_path=pdf_buffer
         )
-        
-        pdf_url = "/" + report_path
+        pdf_buffer.seek(0)
+
+        pdf_url = upload_bytes(
+            pdf_buffer.getvalue(),
+            folder="reports",
+            ext="pdf",
+            content_type="application/pdf",
+            original_name=f"airway_{patient_id}.pdf"
+        )
         
         prediction_data = dict(
             patient_id=patient_id,

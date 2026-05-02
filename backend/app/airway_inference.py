@@ -10,6 +10,8 @@ import pydicom
 import skimage.measure
 import trimesh
 import tempfile
+from huggingface_hub import hf_hub_download
+from app.storage import upload_bytes
 
 # ===============================
 # PARAMETERS
@@ -76,13 +78,18 @@ _MODEL = None
 def get_model():
     global _MODEL
     if _MODEL is None:
-        model_path = os.path.join(os.path.dirname(__file__), "downloaded_models", "airway_segmentation_model.h5")
-        _MODEL = build_unet()
-        if os.path.exists(model_path):
+        try:
+            model_path = hf_hub_download(
+                repo_id="gurunathasmb/cepha-models",
+                filename="airway_segmentation_model.h5",
+                local_dir=os.path.join(os.path.dirname(__file__), "downloaded_models")
+            )
+            _MODEL = build_unet()
             _MODEL.load_weights(model_path)
-            print(f"Loaded airway model from {model_path}")
-        else:
-            print(f"WARNING: Airway model not found at {model_path}. Inference will use random weights.")
+            print(f"Loaded airway model from Hugging Face: {model_path}")
+        except Exception as e:
+            print(f"ERROR downloading airway model: {e}. Using empty weights.")
+            _MODEL = build_unet()
     return _MODEL
 
 # ===============================
@@ -269,28 +276,36 @@ def process_airway_scan(file_bytes, is_zip=False, patient_id=0):
     pred_mask_full = scipy.ndimage.zoom(pred_mask, zoom_factors, order=0)
     
     # 4. Save NRRDs for NiiVue
-    import time
-    ts = int(time.time())
-    os.makedirs("local_storage/volumes", exist_ok=True)
-    
-    orig_nrrd_path = f"local_storage/volumes/scan_{patient_id}_{ts}.nrrd"
-    mask_nrrd_path = f"local_storage/volumes/airway_mask_{patient_id}_{ts}.nrrd"
+    print("Uploading 3D volumes to cloud...")
     
     # Save original scan
-    try:
-        nrrd.write(orig_nrrd_path, volume.astype(np.short), header)
-    except Exception as e:
-        print("Failed to save original NRRD:", e)
-    
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".nrrd") as tmp:
+        nrrd.write(tmp.name, volume.astype(np.short), header)
+        with open(tmp.name, "rb") as f:
+            orig_url = upload_bytes(
+                f.read(),
+                folder="volumes",
+                ext="nrrd",
+                content_type="application/octet-stream",
+                original_name=f"scan_{patient_id}.nrrd"
+            )
+        os.remove(tmp.name)
+
     # 5. Save NRRD Mask
-    # Since we resized the mask back to original shape, we can use the original header
-    try:
-        nrrd.write(mask_nrrd_path, pred_mask_full.astype(np.short), header)
-    except Exception as e:
-        print("Failed to save NRRD mask:", e)
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".nrrd") as tmp:
+        nrrd.write(tmp.name, pred_mask_full.astype(np.short), header)
+        with open(tmp.name, "rb") as f:
+            mask_url = upload_bytes(
+                f.read(),
+                folder="volumes",
+                ext="nrrd",
+                content_type="application/octet-stream",
+                original_name=f"mask_{patient_id}.nrrd"
+            )
+        os.remove(tmp.name)
     
     return {
         "metrics": metrics,
-        "scan_nrrd_url": f"/local_storage/volumes/scan_{patient_id}_{ts}.nrrd",
-        "mask_nrrd_url": f"/local_storage/volumes/airway_mask_{patient_id}_{ts}.nrrd"
+        "scan_nrrd_url": orig_url,
+        "mask_nrrd_url": mask_url
     }
