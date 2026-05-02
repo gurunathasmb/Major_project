@@ -201,6 +201,84 @@ async def ml_finalize(
     )
 
 # ==================================================
+# ================= 3D AIRWAY =====================
+# ==================================================
+from . import airway_inference
+from . import airway_report_generator
+
+@app.post("/airway-predict/{patient_id}")
+async def airway_predict(
+    patient_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    user: models.User = Depends(utils.get_current_user)
+):
+    start = time.time()
+    file_bytes = await file.read()
+    
+    is_zip = file.filename.lower().endswith(".zip")
+    
+    try:
+        # Run inference
+        result = airway_inference.process_airway_scan(file_bytes, is_zip=is_zip, patient_id=patient_id)
+        
+        # Save placeholder screenshot for report (or we can use the original image)
+        # We don't have a 2D screenshot of the 3D yet, so we will skip image_path for now
+        image_url = ""
+        excel_url = ""
+        
+        pdf_buffer = io.BytesIO()
+        os.makedirs("local_storage/reports", exist_ok=True)
+        report_path = f"local_storage/reports/airway_{patient_id}_{int(time.time())}.pdf"
+        
+        airway_report_generator.generate_airway_report(
+            patient_id=patient_id,
+            metrics=result["metrics"],
+            image_path=None,  # No screenshot yet
+            save_path=report_path
+        )
+        
+        pdf_url = "/" + report_path
+        
+        prediction_data = dict(
+            patient_id=patient_id,
+            mode_used="3D_airway",
+            model_name="airway_unet_3d",
+            result="{}",  # Not applicable
+            angles={},
+            skeletal_class=result["metrics"].get("airway_class", "Normal"),
+            airway=result["metrics"],
+            airway_class=result["metrics"].get("airway_class", "Normal"),
+            image_path=result["scan_nrrd_url"] + "," + result["mask_nrrd_url"], 
+            excel_path=excel_url,
+            pdf_path=pdf_url
+        )
+        
+        if hasattr(models.Prediction, "doctor_id"):
+            prediction_data["doctor_id"] = user.id
+            
+        pred = models.Prediction(**prediction_data)
+        db.add(pred)
+        db.commit()
+        db.refresh(pred)
+        
+        return {
+            "id": pred.id,
+            "patient_id": patient_id,
+            "model_name": pred.model_name,
+            "mode_used": pred.mode_used,
+            "metrics": result["metrics"],
+            "scan_nrrd_url": result["scan_nrrd_url"],
+            "mask_nrrd_url": result["mask_nrrd_url"],
+            "pdf_report": pdf_url,
+            "status": "completed"
+        }
+    except Exception as e:
+        print("Airway prediction error:", str(e))
+        raise HTTPException(500, f"Airway processing failed: {str(e)}")
+
+
+# ==================================================
 # FINALIZE FUNCTION (UNCHANGED)
 # ==================================================
 async def finalize_prediction(
