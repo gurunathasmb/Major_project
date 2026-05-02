@@ -59,7 +59,7 @@ jupyterlab_pygments==0.3.0
 keras
 kiwisolver==1.4.9
 libclang
-lightgbm==4.6.0
+
 Markdown==3.10
 markdown-it-py==4.0.0
 MarkupSafe==3.0.3
@@ -95,7 +95,7 @@ stack-data==0.6.3
 starlette==0.49.3
 tensorboard
 tensorboard-data-server
-tensorflow-cpu==2.17.0
+tensorflow-cpu==2.15.0
 termcolor
 threadpoolctl==3.6.0
 tinycss2==1.4.0
@@ -114,7 +114,7 @@ webencodings==0.5.1
 websockets==15.0.1
 Werkzeug==3.1.3
 wrapt
-xgboost==3.1.2
+
 yarg==0.1.9
 qrcode
 pynrrd
