@@ -42,9 +42,17 @@ HM11_PATH = hf_hub_download(
     local_dir=MODEL_DIR
 )
 
+# 🔥 NEW 19 LANDMARK HEATMAP MODEL (FOR CLOUD)
+HM19_PATH = hf_hub_download(
+    repo_id="gurunathasmb/cepha-models",
+    filename="ceph_19_heatmap_model.h5",
+    local_dir=MODEL_DIR
+)
+
 _seg_model = None
 _reg_model = None
 _hm11_model = None
+_hm19_model = None
 
 # ==================================================
 # LOAD MODELS
@@ -70,12 +78,20 @@ def load_hm11_model():
         _hm11_model = tf.keras.models.load_model(HM11_PATH, compile=False)
     return _hm11_model
 
+def load_hm19_model():
+    global _hm19_model
+    if _hm19_model is None:
+        print("DEBUG: Loading 19-Landmark Heatmap Model (Cloud Optimized)...")
+        _hm19_model = tf.keras.models.load_model(HM19_PATH, compile=False)
+    return _hm19_model
+
 def clear_all_models():
     """Clear models from memory if needed (useful for low-memory environments)"""
-    global _seg_model, _reg_model, _hm11_model
+    global _seg_model, _reg_model, _hm11_model, _hm19_model
     _seg_model = None
     _reg_model = None
     _hm11_model = None
+    _hm19_model = None
     tf.keras.backend.clear_session()
 
 
@@ -123,6 +139,27 @@ def heatmap_to_coords(hm):
 # PREDICT 19 LANDMARKS (256)
 # ==================================================
 def predict_landmarks_19(image_bytes):
+    # ==================================================
+    # GLOBAL MODE (Memory Efficient 19-LM Heatmap)
+    # ==================================================
+    if os.getenv("STORAGE_MODE") == "s3":
+        hm19 = load_hm19_model()
+        x = preprocess_11(image_bytes) # Uses 320 size
+        hm_pred = hm19.predict(x, verbose=0)[0]
+        
+        coords = []
+        for i in range(NUM_LANDMARKS):
+            y, xv = np.unravel_index(np.argmax(hm_pred[..., i]), (IMG_SIZE_11, IMG_SIZE_11))
+            coords.append({
+                "name": f"P{i+1}",
+                "x": float(xv / IMG_SIZE_11),
+                "y": float(y / IMG_SIZE_11)
+            })
+        return coords
+
+    # ==================================================
+    # LOCAL MODE (High Accuracy 1.3GB Regressor)
+    # ==================================================
     seg_model = load_seg_model()
     reg_model = load_reg_model()
     x = preprocess_19(image_bytes)
