@@ -140,10 +140,10 @@ export default function Learnmore() {
     <>
       {isLoading && <LoadingScreen onComplete={() => setIsLoading(false)} />}
       
-      <div className={`min-h-screen bg-transparent text-white font-sans overflow-x-hidden transition-opacity duration-1000 ${isLoading ? 'opacity-0 h-screen overflow-hidden' : 'opacity-100'}`}>
+      <div className={`h-screen bg-transparent text-white font-sans overflow-x-hidden overflow-y-auto scroll-smooth snap-y snap-mandatory transition-opacity duration-1000 ${isLoading ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
         
       {/* 1. HERO SECTION */}
-      <section className="relative pt-24 pb-20 px-6 max-w-7xl mx-auto text-center animate-fade-in">
+      <section className="relative w-full min-h-screen flex flex-col items-center justify-center snap-start pt-24 pb-20 px-6 max-w-7xl mx-auto text-center animate-fade-in">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-400 mb-8 backdrop-blur-md">
            <Smartphone size={12} className="inline md:hidden" />
            <Laptop size={12} className="hidden md:inline" />
@@ -168,7 +168,7 @@ export default function Learnmore() {
       </section>
 
       {/* 1.5. INTRODUCTION & PROJECT DETAILS */}
-      <section className="py-24 px-6 max-w-7xl mx-auto border-t border-white/5 mt-10 overflow-hidden">
+      <section className="w-full min-h-screen flex flex-col justify-center snap-start py-24 px-6 max-w-7xl mx-auto border-t border-white/5 overflow-hidden">
         <ScrollReveal>
          <div className="text-center mb-16">
             <h2 className="text-sm font-bold text-cyan-400 uppercase tracking-[0.3em] mb-4">Project Overview</h2>
@@ -189,7 +189,7 @@ export default function Learnmore() {
       </section>
 
       {/* 1.6. TEAM SECTION */}
-      <section className="py-24 bg-white/[0.01] border-y border-white/5 backdrop-blur-sm overflow-hidden">
+      <section className="w-full min-h-screen flex flex-col justify-center snap-start py-24 bg-white/[0.01] border-y border-white/5 backdrop-blur-sm overflow-hidden">
         <ScrollReveal>
          <div className="max-w-7xl mx-auto px-6 text-center">
             <h2 className="text-sm font-bold text-cyan-400 uppercase tracking-[0.3em] mb-4">Our Team</h2>
@@ -225,7 +225,7 @@ export default function Learnmore() {
       </section>
 
       {/* 1.6.5. GUIDES SECTION */}
-      <section className="py-24 bg-white/[0.01] border-b border-white/5 backdrop-blur-sm overflow-hidden">
+      <section className="w-full min-h-screen flex flex-col justify-center snap-start py-24 bg-white/[0.01] border-b border-white/5 backdrop-blur-sm overflow-hidden">
         <ScrollReveal>
          <div className="max-w-7xl mx-auto px-6 text-center">
             <h2 className="text-sm font-bold text-indigo-400 uppercase tracking-[0.3em] mb-4">Mentorship</h2>
@@ -260,7 +260,7 @@ export default function Learnmore() {
       </section>
 
       {/* 1.7. SDG SECTION */}
-      <section className="py-24 px-6 max-w-7xl mx-auto text-center overflow-hidden">
+      <section className="w-full min-h-screen flex flex-col justify-center snap-start py-24 px-6 max-w-7xl mx-auto text-center overflow-hidden">
         <ScrollReveal>
          <div className="mb-16">
             <h2 className="text-sm font-bold text-cyan-400 uppercase tracking-[0.3em] mb-4">Impact</h2>
@@ -285,7 +285,7 @@ export default function Learnmore() {
       </section>
 
       {/* 1.8. ABOUT OUR PROJECT & ARCHITECTURE */}
-      <section className="py-24 bg-white/[0.01] border-t border-white/5 backdrop-blur-sm mb-12 overflow-hidden">
+      <section className="w-full min-h-screen flex flex-col justify-center snap-start py-24 bg-white/[0.01] border-t border-white/5 backdrop-blur-sm overflow-hidden">
         <ScrollReveal>
          <div className="max-w-7xl mx-auto px-6 text-center">
             <h2 className="text-sm font-bold text-cyan-400 uppercase tracking-[0.3em] mb-4">System Design</h2>
@@ -306,7 +306,7 @@ export default function Learnmore() {
       </section>
 
       {/* 1.9. MEDICAL ANALYSIS SKULL */}
-      <section className="py-24 px-6 max-w-7xl mx-auto border-t border-white/5 overflow-hidden">
+      <section className="w-full min-h-screen flex flex-col justify-center snap-start py-24 px-6 max-w-7xl mx-auto border-t border-white/5 overflow-hidden">
         <ScrollReveal>
           <div className="max-w-4xl mx-auto relative group animate-float">
              <div className="absolute inset-0 bg-cyan-500/10 blur-[120px] rounded-full opacity-30"></div>
@@ -320,7 +320,7 @@ export default function Learnmore() {
       </section>
 
       {/* 2. STATS BAR */}
-      <section className="border-y border-white/5 bg-white/[0.02] backdrop-blur-md py-12">
+      <section className="w-full min-h-screen flex flex-col justify-center snap-start border-y border-white/5 bg-white/[0.02] backdrop-blur-md py-12">
          <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-12 text-center">
             <div className="space-y-2">
                <div className="text-4xl font-bold text-white">2.4<span className="text-sm font-medium text-slate-400 ml-1">s</span></div>
@@ -334,7 +334,7 @@ export default function Learnmore() {
       </section>
 
       {/* 3. PRECISION SUITE */}
-      <section className="py-32 px-6 max-w-7xl mx-auto">
+      <section className="w-full min-h-screen flex flex-col justify-center snap-start py-32 px-6 max-w-7xl mx-auto">
         <div className="text-center mb-20">
            <h2 className="text-sm font-bold text-cyan-400 uppercase tracking-[0.3em] mb-4">Precision Suite</h2>
            <h3 className="text-4xl md:text-6xl font-bold tracking-tight leading-none mb-6">Engineered for Precision</h3>
@@ -367,7 +367,7 @@ export default function Learnmore() {
       </section>
 
       {/* 4. WORKFLOW SECTION */}
-      <section className="py-32 bg-white/[0.01] border-y border-white/5 backdrop-blur-sm">
+      <section className="w-full min-h-screen flex flex-col justify-center snap-start py-32 bg-white/[0.01] border-y border-white/5 backdrop-blur-sm">
          <div className="max-w-7xl mx-auto px-6 text-center">
             <h2 className="text-4xl md:text-6xl font-bold tracking-tight mb-16">Seamless Clinical Workflow</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-4">
@@ -380,7 +380,7 @@ export default function Learnmore() {
       </section>
 
       {/* 5. PRACTICE ELEVATION */}
-      <section className="py-32 px-6 max-w-7xl mx-auto">
+      <section className="w-full min-h-screen flex flex-col justify-center snap-start py-32 px-6 max-w-7xl mx-auto">
          <div className="flex flex-col lg:flex-row items-center gap-20">
             <div className="flex-1 space-y-10">
                <div>
@@ -405,7 +405,7 @@ export default function Learnmore() {
       </section>
 
       {/* 6. CTA FOOTER */}
-      <section className="py-32 px-6">
+      <section className="w-full min-h-screen flex flex-col justify-center snap-start py-32 px-6">
          <div className="max-w-5xl mx-auto bg-gradient-to-br from-indigo-900/20 to-cyan-900/20 border border-white/10 rounded-[3rem] p-12 md:p-24 text-center backdrop-blur-xl">
             <h2 className="text-4xl md:text-6xl font-bold tracking-tight mb-8">Ready for the Future?</h2>
             <p className="text-slate-400 max-w-lg mx-auto font-medium mb-12">Join modern practices worldwide using CephaloAI for clinical diagnostics and superior patient outcomes.</p>
@@ -421,7 +421,7 @@ export default function Learnmore() {
       </section>
 
       {/* 7. FOOTER */}
-      <footer className="py-20 px-6 max-w-7xl mx-auto border-t border-white/5 backdrop-blur-sm">
+      <footer className="w-full min-h-screen flex flex-col justify-center snap-start py-20 px-6 max-w-7xl mx-auto border-t border-white/5 backdrop-blur-sm">
          <div className="grid grid-cols-1 md:grid-cols-4 gap-16 mb-16">
             <div className="space-y-6">
                <div className="flex items-center gap-3">
