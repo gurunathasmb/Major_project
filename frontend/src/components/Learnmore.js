@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { 
   Cpu, ShieldCheck, Zap, Activity, 
   ArrowRight, CheckCircle2, Laptop, Smartphone,
@@ -6,12 +6,142 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-export default function Learnmore() {
-  const navigate = useNavigate();
+function ScrollReveal({ children }) {
+  const [isVisible, setIsVisible] = useState(false);
+  const domRef = useRef();
+
+  useEffect(() => {
+    const currentRef = domRef.current;
+    if (!currentRef) return;
+    
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        setIsVisible(entry.isIntersecting);
+      });
+    }, { threshold: 0.15 });
+    
+    observer.observe(currentRef);
+    return () => observer.unobserve(currentRef);
+  }, []);
 
   return (
-    <div className="min-h-screen bg-transparent text-white font-sans overflow-x-hidden">
+    <div
+      ref={domRef}
+      className={`transition-all duration-1000 transform ${
+        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-16"
+      }`}
+    >
+      {children}
+    </div>
+  );
+}
+
+function TypewriterText({ text, delay = 50, onComplete, showCursor = false }) {
+  const [currentText, setCurrentText] = useState("");
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    if (currentIndex < text.length) {
+      // Add slight randomness to typing speed for a natural feel
+      const randomDelay = delay + (Math.random() * 30 - 15);
+      const timeout = setTimeout(() => {
+        setCurrentText(prev => prev + text[currentIndex]);
+        setCurrentIndex(c => c + 1);
+      }, randomDelay);
+      return () => clearTimeout(timeout);
+    }
+  }, [currentIndex, text, delay]);
+
+  useEffect(() => {
+    if (currentIndex === text.length && onComplete) {
+      onComplete();
+    }
+  }, [currentIndex, text.length, onComplete]);
+
+  return (
+    <>
+      {currentText}
+      {showCursor && (
+        <span className="inline-block animate-pulse font-light ml-1 opacity-80 text-cyan-400">|</span>
+      )}
+    </>
+  );
+}
+
+function LoadingScreen({ onComplete }) {
+  const [fadeOut, setFadeOut] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFadeOut(true);
+      setTimeout(onComplete, 800);
+    }, 2500); // 2.5 seconds loading
+    return () => clearTimeout(timer);
+  }, [onComplete]);
+
+  return (
+    <div className={`fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#050a1a] transition-opacity duration-700 ${fadeOut ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+      <div className="absolute inset-0 flex items-center justify-center overflow-hidden pointer-events-none">
+        <div className="w-[40rem] h-[40rem] bg-cyan-500/5 blur-[100px] rounded-full animate-pulse"></div>
+      </div>
+
+      <div className="relative z-10 flex flex-col items-center text-center px-6">
+        <div className="w-20 h-20 mb-10 relative flex items-center justify-center">
+           <div className="absolute inset-0 border-t-2 border-b-2 border-cyan-500 rounded-full animate-spin"></div>
+           <div className="absolute inset-3 border-l-2 border-r-2 border-indigo-500 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
+           <Activity className="text-cyan-400 animate-pulse" size={32} />
+        </div>
+        
+        <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-xs font-black uppercase tracking-[0.4em] text-indigo-400 mb-6 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
+           Team 2
+        </div>
+        
+        <h2 className="text-3xl md:text-5xl lg:text-6xl font-bold tracking-wide mb-6 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400 drop-shadow-lg">
+           AI-Based Landmark Detection
+        </h2>
+        <p className="text-slate-500 font-bold text-xs md:text-sm max-w-lg uppercase tracking-[0.3em] animate-pulse">
+           Initializing Intelligence Engine...
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function HeroTitle({ startTyping }) {
+  const part1 = "AI-Based Landmark Detection";
+  const part2 = "for Correlation of Upper Pharyngeal\nAirway and Mandibular Position";
+  
+  const [showPart2, setShowPart2] = useState(false);
+  const [done, setDone] = useState(false);
+
+  return (
+    <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-wide leading-[1.3] mb-8 min-h-[160px] md:min-h-[220px]">
+      <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400">
+        {startTyping && <TypewriterText text={part1} delay={55} onComplete={() => setShowPart2(true)} showCursor={!showPart2} />}
+      </span><br/>
+      {showPart2 && (
+        <span className="text-3xl md:text-5xl lg:text-6xl mt-6 block whitespace-pre-line text-slate-200 leading-[1.4]">
+           <TypewriterText text={part2} delay={35} onComplete={() => setDone(true)} showCursor={!done} />
+        </span>
+      )}
+    </h1>
+  );
+}
+
+export default function Learnmore() {
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  return (
+    <>
+      {isLoading && <LoadingScreen onComplete={() => setIsLoading(false)} />}
       
+      <div className={`min-h-screen bg-transparent text-white font-sans overflow-x-hidden transition-opacity duration-1000 ${isLoading ? 'opacity-0 h-screen overflow-hidden' : 'opacity-100'}`}>
+        
       {/* 1. HERO SECTION */}
       <section className="relative pt-24 pb-20 px-6 max-w-7xl mx-auto text-center animate-fade-in">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-400 mb-8 backdrop-blur-md">
@@ -20,12 +150,7 @@ export default function Learnmore() {
            Clinical Intelligence Engine
         </div>
         
-        <h1 className="text-5xl md:text-8xl font-bold tracking-tight leading-[1.1] mb-8">
-          AI-Powered <br/>
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400">
-            Cephalometric Intelligence
-          </span>
-        </h1>
+        <HeroTitle startTyping={!isLoading} />
         
         <p className="max-w-2xl mx-auto text-slate-400 text-lg md:text-xl font-medium leading-relaxed mb-12">
           Automated landmark detection, classification, & clinical insights. Engineered for the modern orthodontic practice.
@@ -40,15 +165,158 @@ export default function Learnmore() {
           </button>
         </div>
 
-        {/* Restore Hero Image Center */}
-        <div className="max-w-4xl mx-auto relative group animate-float">
-           <div className="absolute inset-0 bg-cyan-500/10 blur-[120px] rounded-full opacity-30"></div>
-           <img 
-             src="/images/skull_medical_analysis.png" 
-             alt="Clinical AI Analysis" 
-             className="w-full h-auto rounded-[2rem] border border-white/10 shadow-3xl grayscale-[0.2] group-hover:grayscale-0 transition-all duration-1000" 
-           />
-        </div>
+      </section>
+
+      {/* 1.5. INTRODUCTION & PROJECT DETAILS */}
+      <section className="py-24 px-6 max-w-7xl mx-auto border-t border-white/5 mt-10 overflow-hidden">
+        <ScrollReveal>
+         <div className="text-center mb-16">
+            <h2 className="text-sm font-bold text-cyan-400 uppercase tracking-[0.3em] mb-4">Project Overview</h2>
+            <h3 className="text-3xl md:text-5xl font-bold tracking-tight leading-[1.2] mb-6">Research Abstract</h3>
+         </div>
+         <div className="max-w-4xl mx-auto text-slate-400 text-lg font-medium leading-relaxed space-y-6 text-justify">
+            <p>
+              This project presents a deep learning-based framework for automated cephalometric landmark detection and quantitative correlation analysis between upper pharyngeal airway dimensions and mandibular position in orthodontic patients.
+            </p>
+            <p>
+              Traditional cephalometric analysis relies on manual landmark identification—a time-intensive process subject to inter-observer variability. Our proposed system integrates three complementary deep learning modules: a heatmap-based U-Net architecture for 11-landmark detection, a segmentation-guided custom regressor CNN for 19-landmark detection, and a 3D U-Net segmentation module for pharyngeal airway area measurement.
+            </p>
+            <p>
+              The automated system reduces per-radiograph analysis time from 60–90 minutes to under 30 seconds while approaching expert-level accuracy, establishing a scalable framework for population-level airway-morphology studies and clinical decision support.
+            </p>
+         </div>
+        </ScrollReveal>
+      </section>
+
+      {/* 1.6. TEAM SECTION */}
+      <section className="py-24 bg-white/[0.01] border-y border-white/5 backdrop-blur-sm overflow-hidden">
+        <ScrollReveal>
+         <div className="max-w-7xl mx-auto px-6 text-center">
+            <h2 className="text-sm font-bold text-cyan-400 uppercase tracking-[0.3em] mb-4">Our Team</h2>
+            <h3 className="text-4xl md:text-5xl font-bold tracking-tight mb-16">Project Members</h3>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10 mb-24">
+               {[
+                 { name: "Abhay Vijay Goudar", usn: "1DS22AI001", image: "/images/abhay.jpeg", role: "Team Member" },
+                 { name: "Gurunathagouda M Biradar", usn: "1DS22AI016", image: "/images/gurunathagouda.png", role: "Team Member" },
+                 { name: "Mohith Anand", usn: "1DS22AI024", image: "/images/mohit.jpeg", role: "Team Member" },
+                 { name: "Pratham Bhat", usn: "1DS22AI031", image: "/images/pratham.jpeg", role: "Team Member" }
+               ].map((item, idx) => (
+                  <div key={`member-${idx}`} className="flex flex-col items-center">
+                     <div className="w-52 h-52 md:w-56 md:h-56 rounded-full border border-cyan-500/30 overflow-hidden mb-6 group hover:border-cyan-400 transition-all shadow-lg shadow-cyan-500/10 bg-[#0a0f1c] flex items-center justify-center relative">
+                        <img 
+                          src={item.image} 
+                          alt={item.name} 
+                          className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500 z-10" 
+                          onError={(e) => { 
+                            e.target.onerror = null; 
+                            e.target.src = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'%3E%3Crect width='100%25' height='100%25' fill='%23111827'/%3E%3Ctext x='50%25' y='50%25' fill='%234b5563' font-family='sans-serif' font-size='14' text-anchor='middle' alignment-baseline='middle'%3E${item.name.split(' ')[0]}%3C/text%3E%3C/svg%3E`; 
+                          }} 
+                        />
+                     </div>
+                     <h4 className="text-xl font-bold text-white mb-1 leading-tight">{item.name}</h4>
+                     <p className="text-sm text-cyan-400 font-bold mb-1">{item.usn}</p>
+                     <p className="text-xs text-slate-400 font-medium">{item.role}</p>
+                  </div>
+               ))}
+            </div>
+         </div>
+        </ScrollReveal>
+      </section>
+
+      {/* 1.6.5. GUIDES SECTION */}
+      <section className="py-24 bg-white/[0.01] border-b border-white/5 backdrop-blur-sm overflow-hidden">
+        <ScrollReveal>
+         <div className="max-w-7xl mx-auto px-6 text-center">
+            <h2 className="text-sm font-bold text-indigo-400 uppercase tracking-[0.3em] mb-4">Mentorship</h2>
+            <h3 className="text-4xl md:text-5xl font-bold tracking-tight mb-16">Our Guides</h3>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10">
+               {[
+                 { name: "Prof. Ramya K", desc: "Main Guide", image: "/images/ramya.jpeg" },
+                 { name: "Mr. Suraj Kumar", desc: "Software Developer, Co-Guide", image: "/images/suraj.jpeg" },
+                 { name: "Dr. Vindhya Malagi", desc: "Head of Department", image: "/images/hod mam.jpg" },
+                 { name: "Dr. Prachi", desc: "PG Student, Dental Orthodontics", image: "/images/prachi.jpg.jpeg" }
+               ].map((item, idx) => (
+                  <div key={`guide-${idx}`} className="flex flex-col items-center">
+                     <div className="w-52 h-52 md:w-56 md:h-56 rounded-full border border-indigo-500/30 overflow-hidden mb-6 group hover:border-indigo-400 transition-all shadow-lg shadow-indigo-500/10 bg-[#0a0f1c] flex items-center justify-center relative">
+                        <img 
+                          src={item.image} 
+                          alt={item.name} 
+                          className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500 z-10" 
+                          onError={(e) => { 
+                            e.target.onerror = null; 
+                            e.target.src = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'%3E%3Crect width='100%25' height='100%25' fill='%23111827'/%3E%3Ctext x='50%25' y='50%25' fill='%234b5563' font-family='sans-serif' font-size='14' text-anchor='middle' alignment-baseline='middle'%3E${item.name.split(' ')[0]}%3C/text%3E%3C/svg%3E`; 
+                          }} 
+                        />
+                     </div>
+                     <h4 className="text-xl font-bold text-white mb-1 leading-tight">{item.name}</h4>
+                     <p className="text-sm text-indigo-400 font-medium">{item.desc}</p>
+                  </div>
+               ))}
+            </div>
+         </div>
+        </ScrollReveal>
+      </section>
+
+      {/* 1.7. SDG SECTION */}
+      <section className="py-24 px-6 max-w-7xl mx-auto text-center overflow-hidden">
+        <ScrollReveal>
+         <div className="mb-16">
+            <h2 className="text-sm font-bold text-cyan-400 uppercase tracking-[0.3em] mb-4">Impact</h2>
+            <h3 className="text-4xl md:text-5xl font-bold tracking-tight mb-6">Sustainable Development Goals</h3>
+            <p className="max-w-2xl mx-auto text-slate-400 text-lg font-medium">
+               Our project aligns with the United Nations SDGs by improving healthcare accessibility, fostering innovation in medical technology, and ensuring better quality of life through advanced diagnostics.
+            </p>
+         </div>
+         <div className="flex flex-wrap justify-center gap-8">
+            <div className="p-8 rounded-[2rem] border border-white/10 bg-white/[0.02] backdrop-blur-md max-w-xs hover:border-cyan-500/30 hover:bg-cyan-500/5 transition-all cursor-default">
+               <div className="text-5xl mb-6">🏥</div>
+               <h4 className="text-xl font-bold text-white mb-3">SDG 3</h4>
+               <p className="text-sm text-slate-400 leading-relaxed">Good Health and Well-being: Ensuring healthy lives and promoting well-being for all at all ages through precision diagnostics.</p>
+            </div>
+            <div className="p-8 rounded-[2rem] border border-white/10 bg-white/[0.02] backdrop-blur-md max-w-xs hover:border-indigo-500/30 hover:bg-indigo-500/5 transition-all cursor-default">
+               <div className="text-5xl mb-6">⚙️</div>
+               <h4 className="text-xl font-bold text-white mb-3">SDG 9</h4>
+               <p className="text-sm text-slate-400 leading-relaxed">Industry, Innovation and Infrastructure: Building resilient infrastructure and fostering technological innovation in healthcare.</p>
+            </div>
+         </div>
+        </ScrollReveal>
+      </section>
+
+      {/* 1.8. ABOUT OUR PROJECT & ARCHITECTURE */}
+      <section className="py-24 bg-white/[0.01] border-t border-white/5 backdrop-blur-sm mb-12 overflow-hidden">
+        <ScrollReveal>
+         <div className="max-w-7xl mx-auto px-6 text-center">
+            <h2 className="text-sm font-bold text-cyan-400 uppercase tracking-[0.3em] mb-4">System Design</h2>
+            <h3 className="text-4xl md:text-5xl font-bold tracking-tight mb-6">About Our Project & Architecture</h3>
+            <p className="max-w-2xl mx-auto text-slate-400 text-lg font-medium mb-16">
+               A comprehensive overview of our deep learning pipeline, integrating multi-stage neural networks for landmark detection, skeletal classification, and volumetric airway analysis.
+            </p>
+            <div className="max-w-5xl mx-auto p-4 rounded-[2.5rem] border border-white/10 bg-white/[0.03] backdrop-blur-md shadow-2xl relative group">
+               <div className="absolute inset-0 bg-cyan-500/5 blur-[80px] rounded-[2.5rem] opacity-50 group-hover:opacity-80 transition-opacity duration-700"></div>
+               <img 
+                  src="/images/architecture_diagram.png" 
+                  alt="Project Architecture Diagram" 
+                  className="w-full h-auto rounded-[2rem] relative z-10 border border-white/10 shadow-lg"
+               />
+            </div>
+         </div>
+        </ScrollReveal>
+      </section>
+
+      {/* 1.9. MEDICAL ANALYSIS SKULL */}
+      <section className="py-24 px-6 max-w-7xl mx-auto border-t border-white/5 overflow-hidden">
+        <ScrollReveal>
+          <div className="max-w-4xl mx-auto relative group animate-float">
+             <div className="absolute inset-0 bg-cyan-500/10 blur-[120px] rounded-full opacity-30"></div>
+             <img 
+               src="/images/skull_medical_analysis.png" 
+               alt="Clinical AI Analysis" 
+               className="w-full h-auto rounded-[2rem] border border-white/10 shadow-3xl grayscale-[0.2] group-hover:grayscale-0 transition-all duration-1000 relative z-10" 
+             />
+          </div>
+        </ScrollReveal>
       </section>
 
       {/* 2. STATS BAR */}
@@ -180,6 +448,7 @@ export default function Learnmore() {
          </div>
       </footer>
     </div>
+    </>
   );
 }
 
