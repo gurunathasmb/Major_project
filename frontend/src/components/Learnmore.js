@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-function ScrollReveal({ children }) {
+function ScrollReveal({ children, animation = "up", delay = 0, className = "" }) {
   const [isVisible, setIsVisible] = useState(false);
   const domRef = useRef();
 
@@ -16,7 +16,12 @@ function ScrollReveal({ children }) {
     
     const observer = new IntersectionObserver(entries => {
       entries.forEach(entry => {
-        setIsVisible(entry.isIntersecting);
+        if (entry.isIntersecting) {
+           setIsVisible(true);
+        } else {
+           // Allow replay of animation when scrolling back
+           setIsVisible(false);
+        }
       });
     }, { threshold: 0.15 });
     
@@ -24,11 +29,34 @@ function ScrollReveal({ children }) {
     return () => observer.unobserve(currentRef);
   }, []);
 
+  const getInitialClass = () => {
+     switch(animation) {
+        case "left": return "opacity-0 -translate-x-24";
+        case "right": return "opacity-0 translate-x-24";
+        case "scale": return "opacity-0 scale-90";
+        case "fade": return "opacity-0";
+        case "up": 
+        default: return "opacity-0 translate-y-16";
+     }
+  };
+
+  const getVisibleClass = () => {
+     switch(animation) {
+        case "left":
+        case "right": return "opacity-100 translate-x-0";
+        case "scale": return "opacity-100 scale-100";
+        case "fade": return "opacity-100";
+        case "up":
+        default: return "opacity-100 translate-y-0";
+     }
+  };
+
   return (
     <div
       ref={domRef}
-      className={`transition-all duration-1000 transform ${
-        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-16"
+      style={{ transitionDelay: `${delay}ms` }}
+      className={`transition-all duration-1000 transform ${className} ${
+        isVisible ? getVisibleClass() : getInitialClass()
       }`}
     >
       {children}
@@ -140,7 +168,7 @@ export default function Learnmore() {
     <>
       {isLoading && <LoadingScreen onComplete={() => setIsLoading(false)} />}
       
-      <div className={`h-screen bg-transparent text-white font-sans overflow-x-hidden overflow-y-auto scroll-smooth snap-y snap-mandatory transition-opacity duration-1000 ${isLoading ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+      <div className={`h-screen bg-transparent text-white font-sans overflow-x-hidden overflow-y-auto hide-scrollbar scroll-smooth snap-y snap-mandatory transition-opacity duration-1000 ${isLoading ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
         
       {/* 1. HERO SECTION */}
       <section className="relative w-full min-h-screen flex flex-col items-center justify-center snap-start pt-24 pb-20 px-6 max-w-7xl mx-auto text-center animate-fade-in">
@@ -169,7 +197,7 @@ export default function Learnmore() {
 
       {/* 1.5. INTRODUCTION & PROJECT DETAILS */}
       <section className="w-full min-h-screen flex flex-col justify-center snap-start py-24 px-6 max-w-7xl mx-auto border-t border-white/5 overflow-hidden">
-        <ScrollReveal>
+        <ScrollReveal animation="left">
          <div className="text-center mb-16">
             <h2 className="text-sm font-bold text-cyan-400 uppercase tracking-[0.3em] mb-4">Project Overview</h2>
             <h3 className="text-3xl md:text-5xl font-bold tracking-tight leading-[1.2] mb-6">Research Abstract</h3>
@@ -190,10 +218,11 @@ export default function Learnmore() {
 
       {/* 1.6. TEAM SECTION */}
       <section className="w-full min-h-screen flex flex-col justify-center snap-start py-24 bg-white/[0.01] border-y border-white/5 backdrop-blur-sm overflow-hidden">
-        <ScrollReveal>
          <div className="max-w-7xl mx-auto px-6 text-center">
-            <h2 className="text-sm font-bold text-cyan-400 uppercase tracking-[0.3em] mb-4">Our Team</h2>
-            <h3 className="text-4xl md:text-5xl font-bold tracking-tight mb-16">Project Members</h3>
+            <ScrollReveal animation="up">
+               <h2 className="text-sm font-bold text-cyan-400 uppercase tracking-[0.3em] mb-4">Our Team</h2>
+               <h3 className="text-4xl md:text-5xl font-bold tracking-tight mb-16">Project Members</h3>
+            </ScrollReveal>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10 mb-24">
                {[
@@ -202,7 +231,8 @@ export default function Learnmore() {
                  { name: "Mohith Anand", usn: "1DS22AI024", image: "/images/mohit.jpeg", role: "Team Member" },
                  { name: "Pratham Bhat", usn: "1DS22AI031", image: "/images/pratham.jpeg", role: "Team Member" }
                ].map((item, idx) => (
-                  <div key={`member-${idx}`} className="flex flex-col items-center">
+                  <ScrollReveal key={`member-${idx}`} animation="up" delay={idx * 150}>
+                  <div className="flex flex-col items-center">
                      <div className="w-52 h-52 md:w-56 md:h-56 rounded-full border border-cyan-500/30 overflow-hidden mb-6 group hover:border-cyan-400 transition-all shadow-lg shadow-cyan-500/10 bg-[#0a0f1c] flex items-center justify-center relative">
                         <img 
                           src={item.image} 
@@ -218,18 +248,19 @@ export default function Learnmore() {
                      <p className="text-sm text-cyan-400 font-bold mb-1">{item.usn}</p>
                      <p className="text-xs text-slate-400 font-medium">{item.role}</p>
                   </div>
+                  </ScrollReveal>
                ))}
             </div>
          </div>
-        </ScrollReveal>
       </section>
 
       {/* 1.6.5. GUIDES SECTION */}
       <section className="w-full min-h-screen flex flex-col justify-center snap-start py-24 bg-white/[0.01] border-b border-white/5 backdrop-blur-sm overflow-hidden">
-        <ScrollReveal>
          <div className="max-w-7xl mx-auto px-6 text-center">
-            <h2 className="text-sm font-bold text-indigo-400 uppercase tracking-[0.3em] mb-4">Mentorship</h2>
-            <h3 className="text-4xl md:text-5xl font-bold tracking-tight mb-16">Our Guides</h3>
+            <ScrollReveal animation="up">
+               <h2 className="text-sm font-bold text-indigo-400 uppercase tracking-[0.3em] mb-4">Mentorship</h2>
+               <h3 className="text-4xl md:text-5xl font-bold tracking-tight mb-16">Our Guides</h3>
+            </ScrollReveal>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10">
                {[
@@ -238,7 +269,8 @@ export default function Learnmore() {
                  { name: "Dr. Vindhya Malagi", desc: "Head of Department", image: "/images/hod mam.jpg" },
                  { name: "Dr. Prachi", desc: "PG Student, Dental Orthodontics", image: "/images/prachi.jpg.jpeg" }
                ].map((item, idx) => (
-                  <div key={`guide-${idx}`} className="flex flex-col items-center">
+                  <ScrollReveal key={`guide-${idx}`} animation="up" delay={idx * 150}>
+                  <div className="flex flex-col items-center">
                      <div className="w-52 h-52 md:w-56 md:h-56 rounded-full border border-indigo-500/30 overflow-hidden mb-6 group hover:border-indigo-400 transition-all shadow-lg shadow-indigo-500/10 bg-[#0a0f1c] flex items-center justify-center relative">
                         <img 
                           src={item.image} 
@@ -253,10 +285,10 @@ export default function Learnmore() {
                      <h4 className="text-xl font-bold text-white mb-1 leading-tight">{item.name}</h4>
                      <p className="text-sm text-indigo-400 font-medium">{item.desc}</p>
                   </div>
+                  </ScrollReveal>
                ))}
             </div>
          </div>
-        </ScrollReveal>
       </section>
 
       {/* 1.7. SDG SECTION */}
@@ -286,7 +318,7 @@ export default function Learnmore() {
 
       {/* 1.8. ABOUT OUR PROJECT & ARCHITECTURE */}
       <section className="w-full min-h-screen flex flex-col justify-center snap-start py-24 bg-white/[0.01] border-t border-white/5 backdrop-blur-sm overflow-hidden">
-        <ScrollReveal>
+        <ScrollReveal animation="scale">
          <div className="max-w-7xl mx-auto px-6 text-center">
             <h2 className="text-sm font-bold text-cyan-400 uppercase tracking-[0.3em] mb-4">System Design</h2>
             <h3 className="text-4xl md:text-5xl font-bold tracking-tight mb-6">About Our Project & Architecture</h3>
@@ -307,7 +339,7 @@ export default function Learnmore() {
 
       {/* 1.9. MEDICAL ANALYSIS SKULL */}
       <section className="w-full min-h-screen flex flex-col justify-center snap-start py-24 px-6 max-w-7xl mx-auto border-t border-white/5 overflow-hidden">
-        <ScrollReveal>
+        <ScrollReveal animation="scale">
           <div className="max-w-4xl mx-auto relative group animate-float">
              <div className="absolute inset-0 bg-cyan-500/10 blur-[120px] rounded-full opacity-30"></div>
              <img 
@@ -380,8 +412,9 @@ export default function Learnmore() {
       </section>
 
       {/* 5. PRACTICE ELEVATION */}
-      <section className="w-full min-h-screen flex flex-col justify-center snap-start py-32 px-6 max-w-7xl mx-auto">
+      <section className="w-full min-h-screen flex flex-col justify-center snap-start py-32 px-6 max-w-7xl mx-auto overflow-hidden">
          <div className="flex flex-col lg:flex-row items-center gap-20">
+            <ScrollReveal animation="left" className="flex-1">
             <div className="flex-1 space-y-10">
                <div>
                   <h2 className="text-sm font-bold text-cyan-400 uppercase tracking-[0.3em] mb-4">The Clinical Advantage</h2>
@@ -394,13 +427,16 @@ export default function Learnmore() {
                   <BenefitItem title="Patient Engagement Score" desc="Communicate treatment plans more effectively with clear visual AI-augmented reports." />
                </div>
             </div>
+            </ScrollReveal>
             
+            <ScrollReveal animation="right" className="flex-1 w-full max-w-xl">
             <div className="flex-1 w-full max-w-xl">
                <div className="relative rounded-[3rem] overflow-hidden border border-white/10 shadow-3xl">
                   <img src="/images/doctor_clinical_review.png" alt="Clinical Workflow" className="w-full h-auto opacity-80" />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#020408] via-transparent to-transparent opacity-60"></div>
                </div>
             </div>
+            </ScrollReveal>
          </div>
       </section>
 

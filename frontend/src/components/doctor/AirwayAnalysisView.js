@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useContext } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { AuthContext } from "../../context/AuthContext";
 import { Download, ChevronLeft, Activity, Layers, Droplet } from "lucide-react";
 import { Niivue } from "@niivue/niivue";
 
@@ -10,27 +11,56 @@ export default function AirwayAnalysisView() {
   const nav = useNavigate();
   const { id } = useParams();
 
+  const { getAuthHeaders } = useContext(AuthContext);
   const [data, setData] = useState(state?.predictionData || null);
   const [loading, setLoading] = useState(!data);
   const [error, setError] = useState(null);
   const canvasRef = useRef(null);
 
   useEffect(() => {
-    if (!data) {
-       if (!state?.predictionData) {
-           setError("No 3D analysis data available. Please perform scan again.");
-           setLoading(false);
-       }
+    async function loadData() {
+      if (data) return; // Already have data
+      
+      try {
+        const res = await fetch(`${API_URL}/cephalogram/${id}`, {
+          headers: getAuthHeaders(),
+        });
+
+        if (!res.ok) throw new Error("Failed to load analysis");
+
+        const fetchedData = await res.json();
+        
+        // Parse NRRD URLs from image_url (which holds scan,mask urls)
+        // Ensure we map the 3D airway data correctly if needed
+        if (fetchedData.mode_used === '3D_airway') {
+           const urls = fetchedData.image_url ? fetchedData.image_url.split(',') : [];
+           fetchedData.scan_nrrd_url = urls[0] || "";
+           fetchedData.mask_nrrd_url = urls[1] || "";
+        }
+        
+        setData(fetchedData);
+      } catch (err) {
+        setError("Failed to load 3D analysis data: " + err.message);
+      } finally {
+        setLoading(false);
+      }
     }
-  }, [data, state]);
+    
+    loadData();
+  }, [id, data, getAuthHeaders]);
 
   useEffect(() => {
     if (!data || !canvasRef.current) return;
     
     // NiiVue requires valid URLs. Add timestamp to bypass browser cache
     const ts = Date.now();
-    const scanUrl = `${API_URL}${data.scan_nrrd_url}?t=${ts}`;
-    const maskUrl = `${API_URL}${data.mask_nrrd_url}?t=${ts}`;
+    const scanUrl = data.scan_nrrd_url?.startsWith("http") 
+        ? `${data.scan_nrrd_url}?t=${ts}` 
+        : `${API_URL}${data.scan_nrrd_url}?t=${ts}`;
+        
+    const maskUrl = data.mask_nrrd_url?.startsWith("http") 
+        ? `${data.mask_nrrd_url}?t=${ts}` 
+        : `${API_URL}${data.mask_nrrd_url}?t=${ts}`;
 
     // Initialize NiiVue
     const nv = new Niivue({
@@ -60,7 +90,7 @@ export default function AirwayAnalysisView() {
   if (loading) return <div className="p-10 flex justify-center"><div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>;
   if (error) return <div className="p-10 text-rose-500 font-bold text-center">{error}</div>;
 
-  const pdfUrl = `${API_URL}${data.pdf_report}`;
+  const pdfUrl = data.pdf_report?.startsWith("http") ? data.pdf_report : `${API_URL}${data.pdf_report}`;
   const metrics = data.metrics || {};
 
   return (

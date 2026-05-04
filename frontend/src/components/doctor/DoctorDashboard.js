@@ -256,19 +256,24 @@ export default function DoctorDashboard({ searchTerm, setSearchTerm }) {
                 Clinical Reports <span className="h-px bg-slate-100 flex-1"></span>
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {filteredPredictions.map((pr) => (
-                  <div key={pr.id} className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-5 group hover:border-indigo-600 transition-all cursor-pointer active:scale-95" onClick={() => navigate(`/doctor/classification/${pr.id}`)}>
-                    <div className="w-14 h-14 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-indigo-600 group-hover:text-white transition-all">
-                       <Cpu size={24} />
+                {filteredPredictions.map((pr) => {
+                  const isAirway = pr.mode_used === "3D_airway";
+                  const reportName = isAirway ? "3D Airway Analysis" : "2D Cephalometric Analysis";
+                  const link = isAirway ? `/doctor/airway-analysis/${pr.id}` : `/doctor/classification/${pr.id}`;
+                  
+                  return (
+                  <div key={pr.id} className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-5 group hover:border-indigo-600 transition-all cursor-pointer active:scale-95" onClick={() => navigate(link)}>
+                    <div className={`w-14 h-14 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-center text-slate-400 transition-all ${isAirway ? 'group-hover:bg-emerald-600 group-hover:text-white' : 'group-hover:bg-indigo-600 group-hover:text-white'}`}>
+                       {isAirway ? <Activity size={24} /> : <Cpu size={24} />}
                     </div>
                     <div>
-                      <h4 className="font-bold text-slate-900 text-base mb-1">Diagnostic Report</h4>
+                      <h4 className="font-bold text-slate-900 text-base mb-1">{reportName}</h4>
                       <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1.5">
                          View Details <ChevronRight size={12} />
                       </p>
                     </div>
                   </div>
-                ))}
+                )})}
                 {filteredPredictions.length === 0 && (
                   <div className="col-span-full py-20 text-center bg-slate-50/50 rounded-2xl border-dashed border-slate-200 border-2">
                     <Microscope size={48} className="mx-auto text-slate-200 mb-4" />

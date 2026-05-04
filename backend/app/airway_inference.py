@@ -295,30 +295,44 @@ def process_airway_scan(file_bytes, is_zip=False, patient_id=0):
     print("Uploading 3D volumes to cloud...")
     
     # Save original scan
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".nrrd") as tmp:
-        nrrd.write(tmp.name, volume.astype(np.short), header)
-        with open(tmp.name, "rb") as f:
+    tmp_orig = tempfile.NamedTemporaryFile(delete=False, suffix=".nrrd")
+    tmp_orig_name = tmp_orig.name
+    tmp_orig.close()
+
+    try:
+        nrrd.write(tmp_orig_name, volume.astype(np.short), header)
+        with open(tmp_orig_name, "rb") as f:
             orig_url = upload_bytes(
                 f.read(),
                 folder="volumes",
                 ext="nrrd",
                 content_type="application/octet-stream",
-                original_name=f"scan_{patient_id}.nrrd"
+                original_name=f"scan_{patient_id}.nrrd",
+                skip_cloud=True
             )
-        os.remove(tmp.name)
+    finally:
+        if os.path.exists(tmp_orig_name):
+            os.remove(tmp_orig_name)
 
     # 5. Save NRRD Mask
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".nrrd") as tmp:
-        nrrd.write(tmp.name, pred_mask_full.astype(np.short), header)
-        with open(tmp.name, "rb") as f:
+    tmp_mask = tempfile.NamedTemporaryFile(delete=False, suffix=".nrrd")
+    tmp_mask_name = tmp_mask.name
+    tmp_mask.close()
+
+    try:
+        nrrd.write(tmp_mask_name, pred_mask_full.astype(np.short), header)
+        with open(tmp_mask_name, "rb") as f:
             mask_url = upload_bytes(
                 f.read(),
                 folder="volumes",
                 ext="nrrd",
                 content_type="application/octet-stream",
-                original_name=f"mask_{patient_id}.nrrd"
+                original_name=f"mask_{patient_id}.nrrd",
+                skip_cloud=True
             )
-        os.remove(tmp.name)
+    finally:
+        if os.path.exists(tmp_mask_name):
+            os.remove(tmp_mask_name)
     
     return {
         "metrics": metrics,

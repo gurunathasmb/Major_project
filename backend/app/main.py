@@ -28,16 +28,31 @@ STORAGE_MODE = os.getenv("STORAGE_MODE", "local")
 models.Base.metadata.create_all(bind=database.engine)
 app = FastAPI(title="CephAI Backend")
 
+@app.on_event("startup")
+async def load_models_on_startup():
+    print("DEBUG: Pre-loading all AI models on startup for faster local inference...")
+    try:
+        from . import ml_inference, airway_inference
+        # Pre-load Ceph Models
+        ml_inference.load_seg_model()
+        ml_inference.load_reg_model()
+        ml_inference.load_hm11_model()
+        ml_inference.load_hm19_model()
+        # Pre-load Airway Model
+        airway_inference.get_model()
+        print("DEBUG: All models pre-loaded successfully!")
+    except Exception as e:
+        print(f"DEBUG: Error pre-loading models: {e}")
+
 # ==================================================
 # STATIC FILE SERVING
 # ==================================================
-if STORAGE_MODE in ["local", "auto"]:
-    os.makedirs("local_storage", exist_ok=True)
-    app.mount(
-        "/local_storage",
-        StaticFiles(directory="local_storage"),
-        name="local_storage"
-    )
+os.makedirs("local_storage", exist_ok=True)
+app.mount(
+    "/local_storage",
+    StaticFiles(directory="local_storage"),
+    name="local_storage"
+)
 
 # ==================================================
 # CORS

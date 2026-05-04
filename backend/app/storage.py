@@ -26,40 +26,52 @@ S3_PUBLIC_URL_BASE = os.getenv("S3_PUBLIC_URL_BASE")
 
 import time
 
-# ==================================================
-# MAIN UPLOAD FUNCTION
-# ==================================================
+import threading
+
 def upload_bytes(
     file_bytes: bytes,
     folder: str,
     ext: str,
     content_type: str = None,
-    original_name: str = None
+    original_name: str = None,
+    skip_cloud: bool = False
 ):
     """
-    Save file to cloud with fallback to local if no internet/credentials.
-
-    Returns:
-        Full accessible URL
+    Save file locally (for fast visualization) and upload to cloud in parallel.
+    Always returns the LOCAL URL so the frontend can load it instantly.
     """
     start_time = time.time()
     print(f"DEBUG: Starting upload to {folder}...")
     
-    if STORAGE_MODE in ["s3", "auto"]:
-        try:
-            url = _upload_to_s3(file_bytes, folder, ext, content_type, original_name)
-            duration = round(time.time() - start_time, 2)
-            print(f"DEBUG: Cloud upload to {folder} finished in {duration}s")
-            return url
-        except Exception as e:
-            if STORAGE_MODE == "s3":
-                raise e
-            print(f"S3 Upload failed: {str(e)}. Falling back to local storage.")
+    # Generate unified filename so local and cloud match
+    unique_id = uuid.uuid4().hex
+    if original_name:
+        base_name = os.path.splitext(original_name)[0].replace(" ", "_")
+        filename = f"{base_name}_{unique_id}.{ext}"
+    else:
+        filename = f"{unique_id}.{ext}"
 
-    url = _save_local(file_bytes, folder, ext, original_name)
+    # 1. Always save locally first (Fast)
+    local_url = _save_local_with_name(file_bytes, folder, filename)
     duration = round(time.time() - start_time, 2)
     print(f"DEBUG: Local save to {folder} finished in {duration}s")
-    return url
+    
+    # 2. Upload to cloud in background (Parallel)
+    if not skip_cloud and STORAGE_MODE in ["s3", "auto"]:
+        def bg_upload():
+            try:
+                bg_start = time.time()
+                _upload_to_s3_with_name(file_bytes, folder, filename, content_type)
+                bg_dur = round(time.time() - bg_start, 2)
+                print(f"DEBUG: Background cloud upload to {folder}/{filename} finished in {bg_dur}s")
+            except Exception as e:
+                print(f"DEBUG: Background S3 upload failed: {str(e)}")
+        
+        thread = threading.Thread(target=bg_upload)
+        thread.start()
+
+    # 3. Return local URL so frontend can load instantly
+    return local_url
 
 
 _s3_client_cache = None
@@ -96,20 +108,12 @@ def _get_s3_client():
 # ==================================================
 # S3 CLOUD STORAGE
 # ==================================================
-def _upload_to_s3(file_bytes, folder, ext, content_type, original_name):
+def _upload_to_s3_with_name(file_bytes, folder, filename, content_type):
     from botocore.exceptions import NoCredentialsError, ClientError
 
     s3_client = _get_s3_client()
     if not s3_client:
         raise ValueError("S3 credentials are not fully set in the environment.")
-
-    # Generate unique filename
-    unique_id = uuid.uuid4().hex
-    if original_name:
-        base_name = os.path.splitext(original_name)[0].replace(" ", "_")
-        filename = f"{base_name}_{unique_id}.{ext}"
-    else:
-        filename = f"{unique_id}.{ext}"
 
     s3_key = f"{folder}/{filename}"
     
@@ -138,20 +142,10 @@ def _upload_to_s3(file_bytes, folder, ext, content_type, original_name):
 # ==================================================
 # LOCAL STORAGE
 # ==================================================
-def _save_local(file_bytes, folder, ext, original_name):
+def _save_local_with_name(file_bytes, folder, filename):
     # Create directory
     save_dir = os.path.join(LOCAL_STORAGE_DIR, folder)
     os.makedirs(save_dir, exist_ok=True)
-
-    # Generate unique filename
-    unique_id = uuid.uuid4().hex
-
-    if original_name:
-        base_name = os.path.splitext(original_name)[0]
-        base_name = base_name.replace(" ", "_")  # clean spaces
-        filename = f"{base_name}_{unique_id}.{ext}"
-    else:
-        filename = f"{unique_id}.{ext}"
 
     file_path = os.path.join(save_dir, filename)
 
