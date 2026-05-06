@@ -14,7 +14,6 @@ TARGET_LABEL = 5
 # ===============================
 # METRICS & LOSS
 # ===============================
-
 def dice_coefficient(y_true, y_pred):
     import tensorflow.keras.backend as K
     y_true_f = K.flatten(y_true)
